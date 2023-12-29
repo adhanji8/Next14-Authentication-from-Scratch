@@ -1,35 +1,39 @@
 import { NextResponse } from "next/server";
-import { database } from "@/database";
-import jwt from "jsonwebtoken";
+import { IUser, db } from "@/database";
 import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
+import { Session, mySessionStore } from "@/database/sessionstore";
 
 export async function POST(req: Request, res: Response) {
   const cookieStore = cookies();
   const { username, password } = await req.json();
-
-  // Check if user exists
-  const user = database.find((user) => user.username === username);
+  const user = (await db.getData()).find(
+    (user: IUser) => user.username === username
+  );
   if (!user)
     return NextResponse.json({ success: false, error: "User does not exist" });
 
   try {
-    console.log("comparing begins");
     const validPass = await bcrypt.compare(password, user.password);
-    console.log(validPass);
     if (!validPass)
       return NextResponse.json({
         success: false,
         error: "Invalid Credentials",
       });
-    const token = jwt.sign({ userId: user.id }, "secret");
-    cookieStore.set("token", token);
 
-    // @ts-ignore fix later
+    // set the expiry time as 120s after the current time
+    const now = new Date();
+    const expiresAt = new Date(+now + 120 * 1000);
+
+    const session = new Session(user.id, expiresAt);
+    const sessionId = mySessionStore.addSession(session);
+
+    cookieStore.set("session_token", sessionId, { expires: expiresAt });
+
     delete user["password"];
-    return NextResponse.json({ success: true, user, token });
+    return NextResponse.json({ success: true, user });
   } catch (error) {
-    console.log("the eror");
+    console.log(error);
     NextResponse.json({ success: false, error: "Invalid Credentials" });
   }
 }

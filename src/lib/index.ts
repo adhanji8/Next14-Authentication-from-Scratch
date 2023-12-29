@@ -1,22 +1,30 @@
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
-import { database } from "@/database";
+import { IUser, db } from "@/database";
+import { mySessionStore } from "@/database/sessionstore";
 
 export async function fetchUser() {
   try {
     const cookieStore = cookies();
-    const userCookie = cookieStore.get("token");
-    if (!userCookie) return null;
+    const sessionId = cookieStore.get("session_token")?.value;
 
-    // @ts-ignore
-    const { userId } = jwt.verify(userCookie?.value, "secret");
+    if (!sessionId) return null;
 
-    const user = database.find((user) => user.id === userId);
-    // @ts-ignore
+    const userSession = mySessionStore.getSession(sessionId);
+    if (!userSession) return null;
+
+    if (userSession.isExpired()) {
+      mySessionStore.deleteSession(sessionId);
+      return null;
+    }
+
+    const user = (await db.getData()).find(
+      (user: IUser) => user.id === userSession.getData()
+    );
+    if (!user) return null;
     delete user?.password;
     return user;
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.log(error);
     return null;
   }
 }
