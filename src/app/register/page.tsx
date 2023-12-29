@@ -1,20 +1,26 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Toaster, toast } from "sonner";
 import registerUser from "./registerHandler";
 
 export default function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
   const router = useRouter();
 
   async function handleRegister(e: React.FormEvent<RegisterForm>) {
     e.preventDefault();
-    await registerUser(username, password);
-    router.push("/");
-    router.refresh();
+    const { error } = await registerUser(username, password);
+    if (error) {
+      setUsername("");
+      setPassword("");
+      return toast.error(error);
+    } else {
+      router.push("/login");
+      router.refresh();
+    }
   }
 
   return (
@@ -25,7 +31,6 @@ export default function Register() {
         data-v0-t="card"
       >
         <div className="flex flex-col space-y-1.5 p-6">
-          {error}
           <h3 className="font-semibold tracking-tight text-2xl text-center">
             Welcome
           </h3>
@@ -76,6 +81,7 @@ export default function Register() {
           </button>
         </div>
       </form>
+      <Toaster richColors />
     </div>
   );
 }
