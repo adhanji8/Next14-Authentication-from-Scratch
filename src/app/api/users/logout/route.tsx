@@ -1,4 +1,4 @@
-import { mySessionStore } from "@/database/sessionstore";
+import { sessionDb } from "@/database";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -8,7 +8,7 @@ export async function POST() {
   if (!sessionToken) return null;
 
   cookieStore.delete("session_token");
-  mySessionStore.deleteSession(sessionToken.value);
+  sessionDb.deleteSession(sessionToken.value);
 
   cookieStore.set("session_token", "", { expires: new Date() });
 
