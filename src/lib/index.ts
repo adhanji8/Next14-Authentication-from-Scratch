@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
-import { IUser, db } from "@/database";
-import { mySessionStore } from "@/database/sessionstore";
+import { db, sessionDb } from "@/database";
 
 export async function fetchUser() {
   try {
@@ -9,17 +8,16 @@ export async function fetchUser() {
 
     if (!sessionId) return null;
 
-    const userSession = mySessionStore.getSession(sessionId);
+    const userSession = await sessionDb.getSession(sessionId);
     if (!userSession) return null;
 
     if (userSession.isExpired()) {
-      mySessionStore.deleteSession(sessionId);
+      sessionDb.deleteSession(sessionId);
       return null;
     }
 
-    const user = (await db.getData()).find(
-      (user: IUser) => user.id === userSession.getData()
-    );
+    const user = await db.retrieveUserById(userSession.getUserId());
+
     if (!user) return null;
     delete user?.password;
     return user;

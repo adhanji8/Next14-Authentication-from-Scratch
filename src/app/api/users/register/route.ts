@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { IUser, db } from "@/database";
+import { db } from "@/database";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import { IUser } from "@/interfaces";
 
 export async function POST(request: Request) {
   const { username, password } = await request.json();
 
-  const existingUser = (await db.getData()).find(
-    (user: IUser) => user.username === username
-  );
+  const existingUser = await db.retrieveUserByUsername(username);
   if (existingUser)
     return NextResponse.json({ success: false, error: "User already exists" });
 
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
     posts: [],
   };
 
-  db.add(user);
+  await db.add(user);
 
   return NextResponse.json({ success: true });
 }
